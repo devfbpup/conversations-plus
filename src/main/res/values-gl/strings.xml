@@ -1205,4 +1205,9 @@
     <string name="missing_local_network_permission">Requírese permiso para LAN</string>
     <string name="grant_permission">Conceder permiso</string>
     <string name="open_settings">Abrir os axustes</string>
+    <string name="add_attachment">Engadir anexo</string>
+    <string name="hide_attachment_options">Ocultar as opcións do anexo</string>
+    <string name="show_attachment_options">Mostrar as opcións do anexo</string>
+    <string name="collapsed">Pregado</string>
+    <string name="expanded">Despregado</string>
 </resources>
