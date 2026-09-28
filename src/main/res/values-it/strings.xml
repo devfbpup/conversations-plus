@@ -543,7 +543,7 @@
     <string name="type_web">Browser web</string>
     <string name="type_console">Console</string>
     <string name="payment_required">Necessario pagamento</string>
-    <string name="missing_internet_permission">Concedi l\'autorizzazione ad usare internet</string>
+    <string name="missing_internet_permission">Autorizzazione per internet necessaria</string>
     <string name="me">Io</string>
     <string name="contact_asks_for_presence_subscription">Il contatto chiede la sottoscrizione della presenza</string>
     <string name="allow">Consenti</string>
@@ -1222,4 +1222,13 @@
     <string name="invalid_contact">Impossibile leggere il contatto</string>
     <string name="view_edit_history">Vedi cronologia modifiche</string>
     <string name="edit_history">Cronologia modifiche</string>
+    <string name="no_lan_permission">Concedi a %1$s l\'accesso alla rete locale (dispositivi nelle vicinanze).</string>
+    <string name="missing_local_network_permission">Autorizzazione per LAN necessaria</string>
+    <string name="grant_permission">Concedi autorizzazione</string>
+    <string name="open_settings">Apri impostazioni</string>
+    <string name="add_attachment">Aggiungi allegato</string>
+    <string name="hide_attachment_options">Nascondi opzioni allegati</string>
+    <string name="show_attachment_options">Mostra opzioni allegati</string>
+    <string name="collapsed">Ridotto</string>
+    <string name="expanded">Espanso</string>
 </resources>
