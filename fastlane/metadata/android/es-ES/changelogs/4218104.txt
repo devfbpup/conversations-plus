@@ -1,0 +1,2 @@
+* Corregir accesibilidad en la adición de adjuntos
+* Corregir pequeños fallos de la interfaz
