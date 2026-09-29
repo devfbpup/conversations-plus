@@ -1,0 +1,2 @@
+* Poprawienie dostępności dodawania załączników
+* Naprawienie drobnych usterek interfejsu użytkownika
