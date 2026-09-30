@@ -1,0 +1,2 @@
+* Parandasime hõlbustuse vead manuste lisamisel
+* Parandasime mõned väikesed kasutajaliidese kiiksud
