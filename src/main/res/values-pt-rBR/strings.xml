@@ -534,7 +534,7 @@
     <string name="type_web">Navegador da web</string>
     <string name="type_console">Console</string>
     <string name="payment_required">Pagamento necessário</string>
-    <string name="missing_internet_permission">Dê a permissão para usar a internet</string>
+    <string name="missing_internet_permission">Permissão de internet necessária</string>
     <string name="me">Eu</string>
     <string name="contact_asks_for_presence_subscription">O contato está solicitando poder acompanhar sua presença</string>
     <string name="allow">Permitir</string>
@@ -1210,4 +1210,15 @@
     <string name="attachment_choice_contact">Contato</string>
     <string name="note_to_self">Anotações</string>
     <string name="invalid_contact">Não foi possível interpretar o contato</string>
+    <string name="no_lan_permission">Conceda acesso da rede local ao %1$s (dispositivos próximos).</string>
+    <string name="missing_local_network_permission">Permissão de rede local necessária</string>
+    <string name="view_edit_history">Ver histórico de edições</string>
+    <string name="edit_history">Editar histórico</string>
+    <string name="grant_permission">Conceder permissão</string>
+    <string name="open_settings">Abrir Configurações</string>
+    <string name="add_attachment">Adicionar anexo</string>
+    <string name="hide_attachment_options">Ocultar opções de anexo</string>
+    <string name="show_attachment_options">Mostrar opções de anexo</string>
+    <string name="collapsed">Colapsado</string>
+    <string name="expanded">Expandido</string>
 </resources>
