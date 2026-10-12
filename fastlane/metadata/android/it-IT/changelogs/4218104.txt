@@ -1,0 +1,2 @@
+* Corretta l'accessibilità nell'aggiunta degli allegati
+* Corretti errori minori nella UI
