@@ -1169,13 +1169,13 @@
     <string name="dismiss_as_owner">Wyłącz jako właściciela</string>
     <string name="account_status_airplane_mode">Tryb samolotowy</string>
     <string name="account_status_regis_invalid_captcha">Nieprawidłowa CAPTCHA</string>
-    <string name="its_time_for_contact">To jest ^1 do ^2</string>
+    <string name="its_time_for_contact">Teraz jest ^1 dla ^2</string>
     <string name="backup_and_restore">Kopia zapasowa i przywracanie</string>
     <string name="pref_import_backup_summary">Wybierz plik kopii zapasowej aby przywrócić Twoje dane</string>
     <string name="pref_category_backup_storage">Magazyn</string>
     <string name="pref_entity_time_summary">Udostępniaj Twój bieżący czas kontaktom aby widzieć ich lokalny czas w zamian.</string>
     <string name="pref_entity_time">Udostępniaj czas lokalny</string>
-    <string name="contact_has_paused_their_notifications">%s wstrzymał swoje powiadomienia</string>
+    <string name="contact_has_paused_their_notifications">%s ma wstrzymane powiadomienia</string>
     <string name="pref_sync_system_dnd">Synchronizuj systemowe „nie przeszkadzać”</string>
     <string name="pref_sync_system_dnd_summary">Automatycznie ustawia Twój status na „nie przeszkadzać” gdy tryb „nie przeszkadzać” Androida jest aktywny.</string>
     <string name="pref_include_silent_modes">Uwzględnij wyciszone tryby</string>
