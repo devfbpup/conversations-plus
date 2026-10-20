@@ -265,7 +265,7 @@
     <string name="ignore">Yok say</string>
     <string name="without_mutual_presence_updates"><b>Uyarı:</b> Bu mesajı karşılıklı çevrim içi durum bildirimleri olmadan göndermek, beklenmeyen problemlere neden olabilir. <small>\n\n Çevrim içi durum aboneliklerini doğrulamak için \"Kişi Bilgileri\" kısmına gidin.</small></string>
     <string name="pref_security_settings">Güvenlik</string>
-    <string name="pref_allow_message_correction">Mesaj düzeltme</string>
+    <string name="pref_allow_message_correction">Mesaj düzeltmeler</string>
     <string name="pref_allow_message_correction_summary">Kişilerinizin geçmiş iletilerini düzeltmelerine izin ver</string>
     <string name="pref_expert_options">Uzman seçenekleri</string>
     <string name="pref_expert_options_summary">Lütfen dikkatli olun</string>
@@ -542,7 +542,7 @@
     <string name="type_web">Web tarayıcı</string>
     <string name="type_console">Konsol</string>
     <string name="payment_required">Ödeme gerekli</string>
-    <string name="missing_internet_permission">Internet kullanıma izin ver</string>
+    <string name="missing_internet_permission">İnternet izni gereklidir</string>
     <string name="me">Ben</string>
     <string name="contact_asks_for_presence_subscription">Kişi sizi eklemek istiyor</string>
     <string name="allow">İzin ver</string>
@@ -950,7 +950,7 @@
     <string name="pref_title_interface">Arayüz</string>
     <string name="pref_summary_appearance">Tema, Renkler, Ekran Görüntüleri, Girdi</string>
     <string name="pref_light_dark_mode">Açık/Koyu tema</string>
-    <string name="pref_privacy_summary">Yazıyor bildirimi, Son görülme, Müsaitlik</string>
+    <string name="pref_privacy_summary">Yazıyor bildirimi, Son görülme, P2P Aktarıcılar</string>
     <string name="pref_connection_summary">Barındırıcı adı ve Portu, Tor</string>
     <string name="pref_connection_summary_w_cd">Barındırıcı adı ve Portu, Tor, Kanal Keşfetme</string>
     <string name="contact_list_integration_not_available">Kişiler entegrasyonu mevcut değil</string>
@@ -1193,4 +1193,25 @@
     <string name="attachment_choice_contact">Kişi</string>
     <string name="note_to_self">Kendime not</string>
     <string name="invalid_contact">Kişi çözümlenemedi</string>
+    <string name="delete_file_dialog_shared">Bu dosya diğer sohbetler ile paylaşıldı.</string>
+    <string name="delete_file_dialog_copies">Bu, dosyanın diğer cihazlarda veya sunucularda kaydedilen kopyalarını silmeyecektir.</string>
+    <string name="sheet_music">müzik nota</string>
+    <string name="pref_presence_settings_summary">Cihaz kilitlendiğinde \'Boşta\' yap, Sistem \'Rahatsız Etmeyin\' modunu eşitle</string>
+    <string name="no_lan_permission">Yerel ağa (yakındaki cihazlara) %1$s erişim izni verin.</string>
+    <string name="missing_local_network_permission">LAN izni gereklidir</string>
+    <string name="peer_to_peer">Eşten-Eşe</string>
+    <string name="pref_use_relays">Herzaman aktarıcı kullan</string>
+    <string name="pref_use_relays_summary">Tüm P2P bağlantılarını (görüşmeleri ve dosya transferlerini) IP adresinizi açığa çıkarmamak için sunucunuz üzerinden yönlendirin.</string>
+    <string name="pref_sync_system_dnd">Rahatsız Etme modu eşitle</string>
+    <string name="pref_sync_system_dnd_summary">Android\'in Rahatsız Etmeyin modunun etkin olduğu zaman otomatik olarak durumunuzu \"Rahatsız Etmeyin\" olarak ayarlayın.</string>
+    <string name="pref_include_silent_modes_summary">Bildirimler sessize alındığında veya telefon titreşimdeyken de \"Rahatsız Etmeyin\" sinyali gönderin.</string>
+    <string name="view_edit_history">Düzenleme geçmişini gör</string>
+    <string name="edit_history">Geçmişini düzelt</string>
+    <string name="grant_permission">İzin ver</string>
+    <string name="open_settings">Ayarları aç</string>
+    <string name="add_attachment">Dosya ekle</string>
+    <string name="hide_attachment_options">Ekleme seçeneklerini gizle</string>
+    <string name="show_attachment_options">Ekleme seçeneklerini göster</string>
+    <string name="collapsed">Daralt</string>
+    <string name="expanded">Genişlet</string>
 </resources>
