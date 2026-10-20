@@ -1,0 +1,3 @@
+* A/V görüşmesi başarısız olursa yardım düğmesi gösterilir
+* Bazı can sıkıcı çökme düzeltildi
+* Çıplak JID'lerle Jingle bağlantıları (dosya aktarımı + aramalar) düzeltildi

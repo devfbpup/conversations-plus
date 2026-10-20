@@ -1,0 +1,2 @@
+* Sertifika ile giriş kullanıcı arayüzü yeniden düzenlendi
+* Sohbetleri en üste sabitleme (favorilere ekleme) özelliği eklendi

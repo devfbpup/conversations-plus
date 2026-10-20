@@ -1,0 +1,4 @@
+* Uzman ayarı tanıtılarak kanal keşfi, search.jabber.network yerine yerel sunucuda gerçekleştirilecek.
+* Teslimat onay işaretleri varsayılan olarak etkinleştirilecek ve ayar kaldırılacak.
+* 'Gönder düğmesi durum gösterir' varsayılan olarak etkinleştirilecek ve ayar kaldırılacak.
+* Yedekleme ve Ön Plan Servisi ayarları ana ekrana taşınacak.

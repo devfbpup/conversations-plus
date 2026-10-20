@@ -1,0 +1,3 @@
+* Çağrı simgesini sola taşıyarak diğer araç çubuğu simgelerinin tutarlı bir yerde kalmasını sağladı
+* Sesli aramalar sırasında çağrı süresi gösterildi
+* A/V aramaları için eşitlik bozma (aynı iki kişinin aynı anda birbirini aramasını) eklendi

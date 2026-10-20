@@ -1,0 +1,2 @@
+* Sesli geri bildirim (arama, çağrı başlatıldı, çağrı sona erdi) sesli aramalar için eklendi.
+* Başarısız video görüşmesi yeniden denemesiyle ilgili sorun düzeltildi

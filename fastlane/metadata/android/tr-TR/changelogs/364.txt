@@ -1,0 +1,2 @@
+* Android 5+ üzerinde PDF önizlemesi sağlandı
+* OMEMO için 12 baytlık IV'ler kullanıldı
