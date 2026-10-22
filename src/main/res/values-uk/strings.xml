@@ -748,7 +748,7 @@
     <string name="pin_expired">Код, який ми Вам надіслали, застарів.</string>
     <string name="unknown_api_error_network">Невідома помилка мережі.</string>
     <string name="unknown_api_error_response">Сервер дав незрозумілу відповідь.</string>
-    <string name="unable_to_connect_to_server">Неможливо приєднатися до сервера.</string>
+    <string name="unable_to_connect_to_server">Неможливо підключитися до сервера.</string>
     <string name="unable_to_establish_secure_connection">Неможливо встановити безпечне з’єднання.</string>
     <string name="unable_to_find_server">Неможливо знайти сервер.</string>
     <string name="something_went_wrong_processing_your_request">Щось пішло не так під час обробки Вашого запиту.</string>
