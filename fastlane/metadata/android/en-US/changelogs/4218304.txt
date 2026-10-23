@@ -1,0 +1,2 @@
+* Require Channel Binding by default for new installs (Can be disabled in settings)
+* Do not trust eMudhra root CAs

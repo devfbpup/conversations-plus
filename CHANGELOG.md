@@ -1,5 +1,10 @@
 # Changelog
 
+### Version 2.21.0
+
+* Require Channel Binding by default for new installs (Can be disabled in settings)
+* Do not trust eMudhra root CAs
+
 ### Version 2.20.4
 
 * Fix accessibility around adding attachments

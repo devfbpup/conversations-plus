@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:9.2.1'
+        classpath 'com.android.tools.build:gradle:9.4.1'
         classpath 'com.diffplug.spotless:spotless-plugin-gradle:8.10.4'
     }
 }
@@ -109,8 +109,8 @@ android {
 
     defaultConfig {
         minSdk = 23
-        versionCode = 42182
-        versionName = '2.20.4'
+        versionCode = 42183
+        versionName = '2.21.0'
         applicationId = 'eu.siacs.conversations'
         resValue('string', 'applicationId', applicationId)
         def appName = "Conversations"
