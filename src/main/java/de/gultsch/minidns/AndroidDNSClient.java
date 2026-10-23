@@ -115,6 +115,7 @@ public class AndroidDNSClient extends AbstractDnsClient {
         if (dnsServer == null) {
             return Futures.immediateFailedFuture(new IllegalStateException("DNS Server was null"));
         }
+        // TODO if the server is tls or http rewrite this to using DNS sec
         final QuestionServerTuple cacheKey = new QuestionServerTuple(dnsServer, question);
         final DnsMessage cachedResponse = queryCache(cacheKey);
         if (cachedResponse != null) {
@@ -154,6 +155,8 @@ public class AndroidDNSClient extends AbstractDnsClient {
                             return queryAsFuture(question, dnsServers);
                         },
                         MoreExecutors.directExecutor());
+
+        // TODO if this was using DNS sec perform verification on caughtFuture
 
         return Futures.transform(
                 caughtFuture,
