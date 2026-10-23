@@ -10,13 +10,19 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
+import de.gultsch.common.TrustManagers;
 import eu.siacs.conversations.persistance.DatabaseBackend;
 import eu.siacs.conversations.services.EmojiInitializationService;
 import eu.siacs.conversations.ui.util.SettingsUtils;
 import eu.siacs.conversations.utils.ExceptionHelper;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Collection;
+import javax.net.ssl.X509TrustManager;
 import org.conscrypt.Conscrypt;
 
 public class Conversations extends Application {
@@ -44,26 +50,42 @@ public class Conversations extends Application {
             Suppliers.memoize(accountWithOptionsSupplier);
 
     private final Supplier<Boolean> microphoneAvailability =
-            () -> getPackageManager().hasSystemFeature(PackageManager.FEATURE_MICROPHONE);
+            Suppliers.memoize(
+                    () -> getPackageManager().hasSystemFeature(PackageManager.FEATURE_MICROPHONE));
     private final Supplier<Boolean> declaredReadContacts =
-            () -> {
-                final String[] permissions;
-                try {
-                    permissions =
-                            getPackageManager()
-                                    .getPackageInfo(
-                                            getPackageName(), PackageManager.GET_PERMISSIONS)
-                                    .requestedPermissions;
-                } catch (final PackageManager.NameNotFoundException e) {
-                    return false;
-                }
-                if (permissions == null || permissions.length == 0) {
-                    return false;
-                }
-                return Iterables.any(
-                        Arrays.asList(permissions),
-                        p -> p != null && p.equals(Manifest.permission.READ_CONTACTS));
-            };
+            Suppliers.memoize(
+                    () -> {
+                        final String[] permissions;
+                        try {
+                            permissions =
+                                    getPackageManager()
+                                            .getPackageInfo(
+                                                    getPackageName(),
+                                                    PackageManager.GET_PERMISSIONS)
+                                            .requestedPermissions;
+                        } catch (final PackageManager.NameNotFoundException e) {
+                            return false;
+                        }
+                        if (permissions == null || permissions.length == 0) {
+                            return false;
+                        }
+                        return Iterables.any(
+                                Arrays.asList(permissions),
+                                p -> p != null && p.equals(Manifest.permission.READ_CONTACTS));
+                    });
+
+    private final Supplier<X509TrustManager> filteredDefaultTrustManager =
+            Suppliers.memoize(
+                    () -> {
+                        try {
+                            return TrustManagers.createDefaultTrustManager();
+                        } catch (final NoSuchAlgorithmException
+                                | KeyStoreException
+                                | CertificateException
+                                | IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    });
 
     @Override
     public void onCreate() {
@@ -108,5 +130,9 @@ public class Conversations extends Application {
 
     public boolean isDeclaredContactsPermissions() {
         return this.declaredReadContacts.get();
+    }
+
+    public X509TrustManager getFilteredDefaultTrustManager() {
+        return this.filteredDefaultTrustManager.get();
     }
 }
