@@ -1,0 +1,15 @@
+// Conversations+ : this fork's identity, kept out of build.gradle so upstream merges don't conflict.
+// Installs next to the official Conversations (different package and name).
+android {
+    defaultConfig {
+        applicationId = 'eu.siacs.conversations.plus'
+        resValue('string', 'applicationId', applicationId)
+        resValue('string', 'app_name', 'Conversations+')
+        buildConfigField('String', 'APP_NAME', '"Conversations+"')
+    }
+    productFlavors {
+        free {
+            versionNameSuffix = '+free+plus'
+        }
+    }
+}

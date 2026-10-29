@@ -47,3 +47,7 @@ proguard/
 
 import-summary.txt
 .navigation/
+
+# Conversations+ fork: signing key stays local
+signing.properties
+conversations-plus.jks

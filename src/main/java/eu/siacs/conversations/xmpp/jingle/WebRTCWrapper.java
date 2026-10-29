@@ -321,6 +321,29 @@ public class WebRTCWrapper {
         return videoSourceWrapper;
     }
 
+    // Conversations+: screen sharing
+    public synchronized void startScreenShare(
+            final android.content.Intent permissionData, final Runnable onStoppedBySystem) {
+        final VideoSourceWrapper wrapper = this.videoSourceWrapper;
+        if (wrapper == null || this.localVideoTrack == null) {
+            throw new IllegalStateException("video is off");
+        }
+        wrapper.startScreenCapture(
+                permissionData, requireContext(), eglBase.getEglBaseContext(), onStoppedBySystem);
+    }
+
+    public synchronized void stopScreenShare() {
+        final VideoSourceWrapper wrapper = this.videoSourceWrapper;
+        if (wrapper != null) {
+            wrapper.stopScreenCapture(true);
+        }
+    }
+
+    public boolean isScreenSharing() {
+        final VideoSourceWrapper wrapper = this.videoSourceWrapper;
+        return wrapper != null && wrapper.isScreenSharing();
+    }
+
     public synchronized boolean addTrack(final Media media) {
         if (media == Media.VIDEO) {
             return addVideoTrack(requirePeerConnection());

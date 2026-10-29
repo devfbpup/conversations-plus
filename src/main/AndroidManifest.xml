@@ -44,6 +44,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <!-- this foreground service type permission is exclusively used for import and export backup -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -114,7 +115,7 @@
         <service
             android:name=".services.XmppConnectionService"
             android:exported="false"
-            android:foregroundServiceType="specialUse|systemExempted|microphone|camera"
+            android:foregroundServiceType="specialUse|systemExempted|microphone|camera|mediaProjection"
             tools:ignore="ForegroundServicePermission">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

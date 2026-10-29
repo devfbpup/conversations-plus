@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Conversations+ (fork) strings, kept in their own file so upstream merges don't conflict -->
+<resources>
+    <string name="plus_share_screen">Share screen</string>
+    <string name="plus_stop_screen_sharing">Stop sharing screen</string>
+    <string name="plus_sharing_screen">Sharing your screen</string>
+    <string name="plus_could_not_share_screen">Couldn\'t share the screen</string>
+</resources>

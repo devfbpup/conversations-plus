@@ -12,6 +12,11 @@
         android:title="@string/switch_to_chat"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_share_screen"
+        android:title="@string/plus_share_screen"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_switch_to_video"
         android:title="@string/switch_to_video"
         app:showAsAction="never" />

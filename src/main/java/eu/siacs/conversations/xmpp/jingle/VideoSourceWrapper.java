@@ -1,6 +1,9 @@
 package eu.siacs.conversations.xmpp.jingle;
 
 import android.content.Context;
+import android.content.Intent;
+import android.media.projection.MediaProjection;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import androidx.annotation.Nullable;
 import com.google.common.collect.ImmutableSet;
@@ -17,6 +20,7 @@ import org.webrtc.CameraEnumerator;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.EglBase;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoSource;
 
@@ -83,6 +87,7 @@ class VideoSourceWrapper {
     }
 
     public void dispose() {
+        stopScreenCapture(false);
         this.cameraVideoCapturer.dispose();
         if (this.videoSource != null) {
             dispose(this.videoSource);
@@ -115,6 +120,65 @@ class VideoSourceWrapper {
                     }
                 });
         return future;
+    }
+
+    // Conversations+: screen sharing feeds the same VideoSource the camera uses, so the call keeps its
+    // video track and nothing has to be renegotiated.
+    private ScreenCapturerAndroid screenCapturer;
+    private SurfaceTextureHelper screenTextureHelper;
+
+    public synchronized void startScreenCapture(
+            final Intent permissionData,
+            final Context context,
+            final EglBase.Context eglBaseContext,
+            final Runnable onStoppedBySystem) {
+        if (this.screenCapturer != null) {
+            return;
+        }
+        try {
+            this.cameraVideoCapturer.stopCapture();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        this.screenTextureHelper = SurfaceTextureHelper.create("screen", eglBaseContext);
+        final ScreenCapturerAndroid capturer =
+                new ScreenCapturerAndroid(
+                        permissionData,
+                        new MediaProjection.Callback() {
+                            @Override
+                            public void onStop() {
+                                onStoppedBySystem.run();
+                            }
+                        });
+        capturer.initialize(this.screenTextureHelper, context, getVideoSource().getCapturerObserver());
+        final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        final float scale = Math.min(1f, 1280f / Math.max(metrics.widthPixels, metrics.heightPixels));
+        final int width = Math.round(metrics.widthPixels * scale) & ~1;
+        final int height = Math.round(metrics.heightPixels * scale) & ~1;
+        Log.d(Config.LOGTAG, String.format("start screen capture at %dx%d", width, height));
+        capturer.startCapture(width, height, 15);
+        this.screenCapturer = capturer;
+    }
+
+    public synchronized void stopScreenCapture(final boolean resumeCamera) {
+        final ScreenCapturerAndroid capturer = this.screenCapturer;
+        if (capturer == null) {
+            return;
+        }
+        this.screenCapturer = null;
+        capturer.stopCapture();
+        capturer.dispose();
+        if (this.screenTextureHelper != null) {
+            this.screenTextureHelper.dispose();
+            this.screenTextureHelper = null;
+        }
+        if (resumeCamera) {
+            startCapture();
+        }
+    }
+
+    public boolean isScreenSharing() {
+        return this.screenCapturer != null;
     }
 
     public boolean isFrontCamera() {

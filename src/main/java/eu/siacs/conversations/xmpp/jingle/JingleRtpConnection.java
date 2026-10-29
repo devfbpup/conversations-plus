@@ -2741,6 +2741,20 @@ public class JingleRtpConnection extends AbstractJingleConnection
         return webRTCWrapper.isCameraSwitchable();
     }
 
+    // Conversations+: screen sharing
+    public void startScreenShare(
+            final android.content.Intent permissionData, final Runnable onStoppedBySystem) {
+        webRTCWrapper.startScreenShare(permissionData, onStoppedBySystem);
+    }
+
+    public void stopScreenShare() {
+        webRTCWrapper.stopScreenShare();
+    }
+
+    public boolean isScreenSharing() {
+        return webRTCWrapper.isScreenSharing();
+    }
+
     public boolean isFrontCamera() {
         return webRTCWrapper.isFrontCamera();
     }

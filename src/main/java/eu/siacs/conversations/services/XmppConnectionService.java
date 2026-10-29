@@ -1303,7 +1303,17 @@ public class XmppConnectionService extends Service {
         toggleForegroundService(false);
     }
 
+    // Conversations+: the call's foreground service also declares media projection while the screen is shared
+    private final java.util.concurrent.atomic.AtomicBoolean screenSharing =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    public void setScreenSharing(final boolean on) {
+        screenSharing.set(on);
+        toggleForegroundService(false);
+    }
+
     public void removeOngoingCall() {
+        screenSharing.set(false);
         ongoingCall.set(null);
         toggleForegroundService(false);
     }
@@ -1377,7 +1387,19 @@ public class XmppConnectionService extends Service {
                     foregroundServiceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
                     Log.w(Config.LOGTAG, "falling back to special use foreground service type");
                 }
-                startForeground(id, notification, foregroundServiceType);
+                startForeground(
+                        id,
+                        notification,
+                        screenSharing.get()
+                                ? foregroundServiceType
+                                        | ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                                : foregroundServiceType);
+            } else if (screenSharing.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                startForeground(
+                        id,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                                | ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
             } else {
                 startForeground(id, notification);
             }
