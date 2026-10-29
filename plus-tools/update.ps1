@@ -32,7 +32,8 @@ if ([version]$latest -gt [version]$base) {
         Fail "Conversations $latest conflicts with our changes. Nothing was changed; ask Claude to merge it by hand."
     }
     Set-Content (Join-Path $PSScriptRoot 'base-version.txt') $latest
-    git add (Join-Path $PSScriptRoot 'base-version.txt')
+    Set-Content (Join-Path $PSScriptRoot 'plus-build.txt') '0' -NoNewline
+    git add (Join-Path $PSScriptRoot 'base-version.txt') (Join-Path $PSScriptRoot 'plus-build.txt')
     git commit --quiet -m "Conversations+ on Conversations $latest"
     $changed = $true
 } else {
@@ -40,7 +41,16 @@ if ([version]$latest -gt [version]$base) {
 }
 if (-not $changed -and -not $Force) { Say ""; Say "Nothing to do (use -Force to rebuild anyway)."; exit 0 }
 
-Step "Building (about 5-10 minutes)"
+# every build gets the next number: <upstream>.<N> (the app's version and the GitHub tag)
+$buildFile = Join-Path $PSScriptRoot 'plus-build.txt'
+$build = [int](Get-Content $buildFile -Raw).Trim() + 1
+Set-Content $buildFile "$build" -NoNewline
+$base = (Get-Content (Join-Path $PSScriptRoot 'base-version.txt') -Raw).Trim()
+$fullVersion = "$base.$build"
+git add $buildFile
+git commit --quiet -m "Conversations+ $fullVersion"
+
+Step "Building $fullVersion (about 5-10 minutes)"
 & .\gradlew.bat assembleConversationsFreeRelease --console=plain -q
 if ($LASTEXITCODE -ne 0) { Fail "the build failed; run it again with output: .\gradlew.bat assembleConversationsFreeRelease" }
 $apkDir = Join-Path $repo 'build\outputs\apk\conversationsFree\release'
@@ -61,12 +71,11 @@ if (-not $NoInstall) {
 
 if (-not $NoPublish) {
     Step "Publishing a GitHub release (for Obtainium)"
-    $version = (& git describe --tags --abbrev=0 2>$null)
-    $tag = "plus-" + (Get-Content (Join-Path $PSScriptRoot 'base-version.txt') -Raw).Trim() + "-" + (Get-Date -Format 'yyyyMMddHHmm')
+    $tag = "v$fullVersion"
     git push --quiet github plus
     git push --quiet github HEAD:refs/heads/main 2>$null
-    gh release create $tag $arm64.FullName $universal.FullName --repo devfbpup/conversations-plus `
-        --title "Conversations+ $tag" --notes "Conversations $version + Conversations+ features (screen sharing, ...). Built $(Get-Date -Format u)."
+    gh release create $tag --target plus $arm64.FullName $universal.FullName --repo devfbpup/conversations-plus `
+        --title "Conversations+ $fullVersion" --notes "Conversations $base + Conversations+ features (screen sharing in calls). Install the arm64-v8a APK on most phones; universal works everywhere. Built $(Get-Date -Format u)."
     if ($LASTEXITCODE -ne 0) { Say "  GitHub release failed (is gh logged in?)" }
 }
 Write-Host ""

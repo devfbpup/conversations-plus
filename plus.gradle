@@ -1,5 +1,8 @@
 // Conversations+ : this fork's identity, kept out of build.gradle so upstream merges don't conflict.
 // Installs next to the official Conversations (different package and name).
+// Version = upstream version + '.N' from plus-tools/plus-build.txt (e.g. 2.21.0.3+plus); the GitHub release is
+// tagged v2.21.0.3 so Obtainium reads the same number.
+def plusBuild = file('plus-tools/plus-build.txt').text.trim()
 android {
     defaultConfig {
         applicationId = 'eu.siacs.conversations.plus'
@@ -9,7 +12,7 @@ android {
     }
     productFlavors {
         free {
-            versionNameSuffix = '+free+plus'
+            versionNameSuffix = ".${plusBuild}+plus"
         }
     }
 }
