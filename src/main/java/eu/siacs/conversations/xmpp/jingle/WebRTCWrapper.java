@@ -223,6 +223,105 @@ public class WebRTCWrapper {
         this.eventCallback = eventCallback;
     }
 
+    // Conversations+ (group calls): the legs of a group call share ONE PeerConnectionFactory (so one
+    // microphone capture and one mixed speaker output), one EglBase and one camera. Reference
+    // counted; the last leg to close disposes them.
+    private boolean useSharedResources = false;
+    private boolean usingSharedResources = false;
+    private boolean usingSharedVideoSource = false;
+    private static final Object SHARED_LOCK = new Object();
+    @Nullable private static PeerConnectionFactory sharedFactory = null;
+    @Nullable private static EglBase sharedEglBase = null;
+    private static int sharedRefCount = 0;
+    @Nullable private static VideoSourceWrapper sharedVideoSource = null;
+    private static int sharedVideoRefCount = 0;
+
+    void setUseSharedResources(final boolean shared) {
+        this.useSharedResources = shared;
+    }
+
+    private static PeerConnectionFactory acquireSharedFactory(
+            final Context context, final boolean hardwareEchoCanceler) {
+        synchronized (SHARED_LOCK) {
+            if (sharedFactory == null) {
+                sharedEglBase = EglBase.create();
+                sharedFactory =
+                        PeerConnectionFactory.builder()
+                                .setVideoDecoderFactory(
+                                        new DefaultVideoDecoderFactory(
+                                                sharedEglBase.getEglBaseContext()))
+                                .setVideoEncoderFactory(
+                                        new DefaultVideoEncoderFactory(
+                                                sharedEglBase.getEglBaseContext(), true, true))
+                                .setAudioDeviceModule(
+                                        JavaAudioDeviceModule.builder(context)
+                                                .setUseHardwareAcousticEchoCanceler(
+                                                        hardwareEchoCanceler)
+                                                .createAudioDeviceModule())
+                                .createPeerConnectionFactory();
+            }
+            sharedRefCount++;
+            Log.d(Config.LOGTAG, "group call: shared PeerConnectionFactory, legs=" + sharedRefCount);
+            return sharedFactory;
+        }
+    }
+
+    private static void releaseSharedFactory() {
+        synchronized (SHARED_LOCK) {
+            sharedRefCount--;
+            if (sharedRefCount > 0) {
+                return;
+            }
+            sharedRefCount = 0;
+            if (sharedFactory != null) {
+                sharedFactory.dispose();
+                sharedFactory = null;
+            }
+            if (sharedEglBase != null) {
+                sharedEglBase.release();
+                sharedEglBase = null;
+            }
+        }
+    }
+
+    private static VideoSourceWrapper acquireSharedVideoSource(
+            final Context context,
+            final PeerConnectionFactory factory,
+            final EglBase.Context eglBaseContext) {
+        synchronized (SHARED_LOCK) {
+            if (sharedVideoSource == null) {
+                final VideoSourceWrapper wrapper = new VideoSourceWrapper.Factory(context).create();
+                if (wrapper == null) {
+                    throw new IllegalStateException("Could not instantiate VideoSourceWrapper");
+                }
+                wrapper.initialize(factory, context, eglBaseContext);
+                wrapper.startCapture();
+                sharedVideoSource = wrapper;
+            }
+            sharedVideoRefCount++;
+            return sharedVideoSource;
+        }
+    }
+
+    private static void releaseSharedVideoSource() {
+        synchronized (SHARED_LOCK) {
+            sharedVideoRefCount--;
+            if (sharedVideoRefCount > 0) {
+                return;
+            }
+            sharedVideoRefCount = 0;
+            if (sharedVideoSource != null) {
+                try {
+                    sharedVideoSource.stopCapture();
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                sharedVideoSource.dispose();
+                sharedVideoSource = null;
+            }
+        }
+    }
+
     private static void dispose(final PeerConnection peerConnection) {
         try {
             peerConnection.dispose();
@@ -240,12 +339,15 @@ public class WebRTCWrapper {
         } catch (final UnsatisfiedLinkError e) {
             throw new InitializationException("Unable to initialize PeerConnectionFactory", e);
         }
+        this.context = service;
+        if (this.useSharedResources) {
+            return; // the shared EglBase comes with the shared factory
+        }
         try {
             this.eglBase = EglBase.create();
         } catch (final RuntimeException e) {
             throw new InitializationException("Unable to create EGL base", e);
         }
-        this.context = service;
     }
 
     synchronized void initializePeerConnection(
@@ -254,7 +356,7 @@ public class WebRTCWrapper {
             final boolean trickle,
             final boolean useRelays)
             throws InitializationException {
-        Preconditions.checkState(this.eglBase != null);
+        Preconditions.checkState(this.eglBase != null || this.useSharedResources);
         Preconditions.checkNotNull(media);
         Preconditions.checkArgument(
                 !media.isEmpty(), "media can not be empty when initializing peer connection");
@@ -267,19 +369,28 @@ public class WebRTCWrapper {
                         setUseHardwareAcousticEchoCanceler, Build.MODEL));
         final var relaysAvailable = Iterables.any(iceServers, i -> i != null && isTurnRelay(i));
         this.requiresArtificialFail = useRelays && !relaysAvailable;
-        this.peerConnectionFactory =
-                PeerConnectionFactory.builder()
-                        .setVideoDecoderFactory(
-                                new DefaultVideoDecoderFactory(eglBase.getEglBaseContext()))
-                        .setVideoEncoderFactory(
-                                new DefaultVideoEncoderFactory(
-                                        eglBase.getEglBaseContext(), true, true))
-                        .setAudioDeviceModule(
-                                JavaAudioDeviceModule.builder(requireContext())
-                                        .setUseHardwareAcousticEchoCanceler(
-                                                setUseHardwareAcousticEchoCanceler)
-                                        .createAudioDeviceModule())
-                        .createPeerConnectionFactory();
+        if (this.useSharedResources) {
+            this.peerConnectionFactory =
+                    acquireSharedFactory(requireContext(), setUseHardwareAcousticEchoCanceler);
+            this.usingSharedResources = true;
+            synchronized (SHARED_LOCK) {
+                this.eglBase = sharedEglBase;
+            }
+        } else {
+            this.peerConnectionFactory =
+                    PeerConnectionFactory.builder()
+                            .setVideoDecoderFactory(
+                                    new DefaultVideoDecoderFactory(eglBase.getEglBaseContext()))
+                            .setVideoEncoderFactory(
+                                    new DefaultVideoEncoderFactory(
+                                            eglBase.getEglBaseContext(), true, true))
+                            .setAudioDeviceModule(
+                                    JavaAudioDeviceModule.builder(requireContext())
+                                            .setUseHardwareAcousticEchoCanceler(
+                                                    setUseHardwareAcousticEchoCanceler)
+                                            .createAudioDeviceModule())
+                            .createPeerConnectionFactory();
+        }
 
         final PeerConnection.RTCConfiguration rtcConfig =
                 buildConfiguration(iceServers, trickle, useRelays);
@@ -308,6 +419,16 @@ public class WebRTCWrapper {
         if (existingVideoSourceWrapper != null) {
             existingVideoSourceWrapper.startCapture();
             return existingVideoSourceWrapper;
+        }
+        if (this.useSharedResources) {
+            final VideoSourceWrapper shared =
+                    acquireSharedVideoSource(
+                            requireContext(),
+                            requirePeerConnectionFactory(),
+                            eglBase.getEglBaseContext());
+            this.usingSharedVideoSource = true;
+            this.videoSourceWrapper = shared;
+            return shared;
         }
         final VideoSourceWrapper videoSourceWrapper =
                 new VideoSourceWrapper.Factory(requireContext()).create();
@@ -410,7 +531,7 @@ public class WebRTCWrapper {
             exactTransceiver.setDirection(RtpTransceiver.RtpTransceiverDirection.INACTIVE);
         }
         final VideoSourceWrapper videoSourceWrapper = this.videoSourceWrapper;
-        if (videoSourceWrapper != null) {
+        if (videoSourceWrapper != null && !this.usingSharedVideoSource) {
             try {
                 videoSourceWrapper.stopCapture();
             } catch (final InterruptedException e) {
@@ -495,12 +616,24 @@ public class WebRTCWrapper {
         this.remoteVideoTrack = null;
         if (videoSourceWrapper != null) {
             this.videoSourceWrapper = null;
-            try {
-                videoSourceWrapper.stopCapture();
-            } catch (final InterruptedException e) {
-                Log.e(Config.LOGTAG, "unable to stop capturing");
+            if (this.usingSharedVideoSource) {
+                this.usingSharedVideoSource = false;
+                releaseSharedVideoSource();
+            } else {
+                try {
+                    videoSourceWrapper.stopCapture();
+                } catch (final InterruptedException e) {
+                    Log.e(Config.LOGTAG, "unable to stop capturing");
+                }
+                videoSourceWrapper.dispose();
             }
-            videoSourceWrapper.dispose();
+        }
+        if (this.usingSharedResources) {
+            this.usingSharedResources = false;
+            this.eglBase = null;
+            this.peerConnectionFactory = null;
+            releaseSharedFactory();
+            return;
         }
         if (eglBase != null) {
             eglBase.release();

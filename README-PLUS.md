@@ -5,7 +5,9 @@ It installs **next to** the official app (package `eu.siacs.conversations.plus`,
 
 ## What's added
 - **Screen sharing in video calls**: in a call, tap the screen → ⋮ → *Share screen*. Android asks for permission each time.
-- More coming (group calls).
+- **Group calls** (XEP-0272 Muji, compatible with monocles chat and my Gajim plugin): in a private group (members-only, members see each other's addresses) tap the phone icon. Everyone in the group sees the call and can join; up to 8 people, everyone connected to everyone.
+
+Group calls are ported from [monocles chat](https://codeberg.org/monocles/monocles_chat) (GPLv3).
 
 ## Install + get updates (Obtainium)
 1. Install [Obtainium](https://github.com/ImranR98/Obtainium).

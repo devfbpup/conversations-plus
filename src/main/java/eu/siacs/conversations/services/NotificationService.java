@@ -688,6 +688,20 @@ public class NotificationService {
         builder.setPriority(NotificationCompat.PRIORITY_HIGH);
         builder.setCategory(NotificationCompat.CATEGORY_CALL);
         builder.setContentIntent(createPendingRtpSession(id, Intent.ACTION_VIEW, 101));
+        if (ongoingCall.room != null) {
+            // Conversations+: a group call
+            final var conversation = mXmppConnectionService.find(id.account, ongoingCall.room);
+            builder.setContentTitle(mXmppConnectionService.getString(R.string.plus_ongoing_group_call));
+            builder.setContentText(
+                    conversation != null ? conversation.getName() : ongoingCall.room.toString());
+            builder.setContentIntent(
+                    PendingIntent.getActivity(
+                            mXmppConnectionService,
+                            105,
+                            eu.siacs.conversations.ui.GroupCallActivity.intent(
+                                    mXmppConnectionService, id.account, ongoingCall.room, false),
+                            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        }
         builder.setOngoing(true);
         builder.addAction(
                 new NotificationCompat.Action.Builder(

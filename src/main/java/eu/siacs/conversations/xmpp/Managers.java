@@ -26,6 +26,7 @@ import eu.siacs.conversations.xmpp.manager.LegacyBookmarkManager;
 import eu.siacs.conversations.xmpp.manager.MessageArchiveManager;
 import eu.siacs.conversations.xmpp.manager.MessageDisplayedSynchronizationManager;
 import eu.siacs.conversations.xmpp.manager.ModerationManager;
+import eu.siacs.conversations.xmpp.manager.MujiManager;
 import eu.siacs.conversations.xmpp.manager.MultiUserChatManager;
 import eu.siacs.conversations.xmpp.manager.NativeBookmarkManager;
 import eu.siacs.conversations.xmpp.manager.NickManager;
@@ -82,6 +83,7 @@ public class Managers {
                         new MessageDisplayedSynchronizationManager(context, connection))
                 .put(ModerationManager.class, new ModerationManager(context, connection))
                 .put(MultiUserChatManager.class, new MultiUserChatManager(context, connection))
+                .put(MujiManager.class, new MujiManager(context, connection))
                 .put(NativeBookmarkManager.class, new NativeBookmarkManager(context, connection))
                 .put(NickManager.class, new NickManager(context, connection))
                 .put(OfflineMessagesManager.class, new OfflineMessagesManager(context, connection))

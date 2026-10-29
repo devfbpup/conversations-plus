@@ -44,6 +44,7 @@ import eu.siacs.conversations.xmpp.jingle.stanzas.IceUdpTransportInfo;
 import eu.siacs.conversations.xmpp.jingle.stanzas.RtpDescription;
 import eu.siacs.conversations.xmpp.manager.ExternalServiceDiscoveryManager;
 import eu.siacs.conversations.xmpp.manager.JingleManager;
+import eu.siacs.conversations.xmpp.manager.MujiManager;
 import eu.siacs.conversations.xmpp.manager.JingleMessageManager;
 import im.conversations.android.xmpp.IqErrorException;
 import im.conversations.android.xmpp.model.error.Condition;
@@ -120,9 +121,54 @@ public class JingleRtpConnection extends AbstractJingleConnection
             final Id id,
             final Jid initiator,
             final CallIntegration callIntegration) {
+        this(service, id, initiator, callIntegration, null);
+    }
+
+    // Conversations+ (group calls): a leg of the group call in this room. Its session-initiate
+    // carries <muji room>, it is never rung, logged or shown as a 1:1 call, and it shares the
+    // conference's audio + WebRTC resources.
+    private final String mujiRoom;
+
+    public static JingleRtpConnection groupCallLeg(
+            final XmppConnectionService service,
+            final Id id,
+            final Jid initiator,
+            final String room,
+            final eu.siacs.conversations.services.AppRTCAudioManager sharedAudio) {
+        return new JingleRtpConnection(
+                service,
+                id,
+                initiator,
+                new CallIntegration(service.getApplicationContext(), sharedAudio),
+                room);
+    }
+
+    public String getMujiRoom() {
+        return this.mujiRoom;
+    }
+
+    private boolean isMuji() {
+        return this.mujiRoom != null;
+    }
+
+    private MujiManager mujiManager() {
+        return id.account.getXmppConnection().getManager(MujiManager.class);
+    }
+
+    private JingleRtpConnection(
+            final XmppConnectionService service,
+            final Id id,
+            final Jid initiator,
+            final CallIntegration callIntegration,
+            final String mujiRoom) {
         super(service, id, initiator);
+        this.mujiRoom = mujiRoom;
         final Conversation conversation =
-                service.findOrCreateConversation(id.account, id.with.asBareJid(), false, false);
+                service.findOrCreateConversation(
+                        id.account,
+                        mujiRoom != null ? Jid.of(mujiRoom) : id.with.asBareJid(),
+                        false,
+                        false);
         this.message =
                 new Message(
                         conversation,
@@ -1199,7 +1245,9 @@ public class JingleRtpConnection extends AbstractJingleConnection
             target = State.SESSION_INITIALIZED_PRE_APPROVED;
         } else {
             target = State.SESSION_INITIALIZED;
-            setProposedMedia(contentMap.getMedia());
+            if (!isMuji() || this.proposedMedia == null) {
+                setProposedMedia(contentMap.getMedia());
+            }
         }
         if (transition(target, () -> this.initiatorRtpContentMap = contentMap)) {
             respondOk(jinglePacket);
@@ -1209,6 +1257,10 @@ public class JingleRtpConnection extends AbstractJingleConnection
                         Config.LOGTAG,
                         id.account.getJid().asBareJid()
                                 + ": automatically accepting session-initiate");
+                sendSessionAccept();
+            } else if (isMuji()) {
+                // we joined this group call already: accept the leg, don't ring
+                Log.d(Config.LOGTAG, "muji: accepting leg with " + id.with + " in " + mujiRoom);
                 sendSessionAccept();
             } else {
                 Log.d(
@@ -1351,7 +1403,16 @@ public class JingleRtpConnection extends AbstractJingleConnection
             sendSessionTerminate(new Reason.FailedApplication(), e.getMessage());
             return;
         }
-        sendSessionAccept(rtpContentMap.getMedia(), offer);
+        final Set<Media> media;
+        if (isMuji() && this.proposedMedia != null && !this.proposedMedia.isEmpty()) {
+            final Set<Media> both =
+                    Sets.intersection(rtpContentMap.getMedia(), this.proposedMedia)
+                            .immutableCopy();
+            media = both.isEmpty() ? rtpContentMap.getMedia() : both;
+        } else {
+            media = rtpContentMap.getMedia();
+        }
+        sendSessionAccept(media, offer);
     }
 
     private void sendSessionAccept(final Set<Media> media, final SessionDescription offer) {
@@ -1962,6 +2023,11 @@ public class JingleRtpConnection extends AbstractJingleConnection
         this.transitionOrThrow(targetState);
         final Iq sessionInitiate =
                 rtpContentMap.toJinglePacket(Jingle.Action.SESSION_INITIATE, id.sessionId);
+        if (isMuji()) {
+            final var jingle = sessionInitiate.getExtension(Jingle.class);
+            jingle.addChild("muji", im.conversations.android.xmpp.model.muji.Muji.NAMESPACE)
+                    .setAttribute("room", this.mujiRoom);
+        }
         send(sessionInitiate);
     }
 
@@ -2012,6 +2078,9 @@ public class JingleRtpConnection extends AbstractJingleConnection
 
     protected void sendSessionTerminate(final Reason reason, final String text) {
         sendSessionTerminate(reason, text, this::writeLogMessage);
+        if (isMuji()) {
+            return; // a group-call leg was never rung via JMI
+        }
         id.account
                 .getXmppConnection()
                 .getManager(JingleMessageManager.class)
@@ -2365,6 +2434,7 @@ public class JingleRtpConnection extends AbstractJingleConnection
                 .getXmppConnection()
                 .getManager(JingleManager.class)
                 .ensureConnectionIsRegistered(this);
+        this.webRTCWrapper.setUseSharedResources(isMuji());
         this.webRTCWrapper.setup(this.xmppConnectionService);
         final var appSettings = new AppSettings(xmppConnectionService.getApplicationContext());
         this.webRTCWrapper.initializePeerConnection(
@@ -2471,6 +2541,11 @@ public class JingleRtpConnection extends AbstractJingleConnection
         this.stateHistory.add(newState);
         if (newState == PeerConnection.PeerConnectionState.CONNECTED) {
             this.sessionDuration.start();
+            if (isMuji()) {
+                final String room = this.mujiRoom;
+                JingleManager.SCHEDULED_EXECUTOR_SERVICE.execute(
+                        () -> mujiManager().onLegConnected(room, this));
+            }
             updateOngoingCallNotification();
         } else if (this.sessionDuration.isRunning()) {
             this.sessionDuration.stop();
@@ -2846,6 +2921,12 @@ public class JingleRtpConnection extends AbstractJingleConnection
     }
 
     private void updateOngoingCallNotification() {
+        if (isMuji()) {
+            final String room = this.mujiRoom;
+            JingleManager.SCHEDULED_EXECUTOR_SERVICE.execute(
+                    () -> mujiManager().refreshOngoingCall(room));
+            return;
+        }
         final State state = this.state;
         if (STATES_SHOWING_ONGOING_CALL.contains(state)) {
             if (Arrays.asList(State.PROPOSED, State.SESSION_INITIALIZED).contains(state)
@@ -2906,6 +2987,11 @@ public class JingleRtpConnection extends AbstractJingleConnection
                     .getXmppConnection()
                     .getManager(JingleManager.class)
                     .setTerminalSessionState(id, getEndUserState(), getMedia());
+            if (isMuji()) {
+                final String room = this.mujiRoom;
+                JingleManager.SCHEDULED_EXECUTOR_SERVICE.execute(
+                        () -> mujiManager().onLegEnded(room, this));
+            }
             super.finish();
         } else {
             throw new IllegalStateException(
@@ -2934,6 +3020,9 @@ public class JingleRtpConnection extends AbstractJingleConnection
     }
 
     private void writeMessage() {
+        if (isMuji()) {
+            return;
+        }
         final Conversational conversational = message.getConversation();
         if (conversational instanceof Conversation) {
             ((Conversation) conversational).add(this.message);

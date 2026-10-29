@@ -1303,6 +1303,22 @@ public class XmppConnectionService extends Service {
         toggleForegroundService(false);
     }
 
+    // Conversations+: one ongoing-call notification for a whole group call
+    public void setOngoingGroupCall(
+            final AbstractJingleConnection.Id id, final Set<Media> media, final Jid room) {
+        final OngoingCall call = new OngoingCall(id, media, false);
+        call.room = room;
+        final OngoingCall previous = ongoingCall.getAndSet(call);
+        if (!call.equals(previous) || previous == null || !room.equals(previous.room)) {
+            toggleForegroundService(false);
+        }
+    }
+
+    public boolean isOngoingGroupCall(final Jid room) {
+        final OngoingCall call = ongoingCall.get();
+        return call != null && room.equals(call.room);
+    }
+
     // Conversations+: the call's foreground service also declares media projection while the screen is shared
     private final java.util.concurrent.atomic.AtomicBoolean screenSharing =
             new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -4087,6 +4103,8 @@ public class XmppConnectionService extends Service {
     }
 
     public static class OngoingCall {
+        public Jid room; // Conversations+: set for a group call
+
         public final AbstractJingleConnection.Id id;
         public final Set<Media> media;
         public final boolean reconnecting;

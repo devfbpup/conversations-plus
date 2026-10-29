@@ -682,8 +682,31 @@ public class ConversationFragment extends XmppFragment
                     }
                     if (c.getMode() == Conversation.MODE_MULTI) {
                         menuInviteContact.setVisible(c.getMucOptions().canInvite());
-                        menuCall.setVisible(false);
-                        menuOngoingCall.setVisible(false);
+                        // Conversations+: group calls in private, non-anonymous groups
+                        final var muji =
+                                c.getAccount()
+                                        .getXmppConnection()
+                                        .getManager(
+                                                eu.siacs.conversations.xmpp.manager.MujiManager
+                                                        .class);
+                        final var room = c.getAddress().asBareJid();
+                        final boolean groupCalls =
+                                c.getMucOptions().online()
+                                        && c.getMucOptions().isPrivateAndNonAnonymous();
+                        if (groupCalls && (muji.isInCall(room) || muji.hasRunningCall(room))) {
+                            menuOngoingCall.setVisible(true);
+                            menuOngoingCall.setTitle(
+                                    muji.isInCall(room)
+                                            ? R.string.plus_group_call
+                                            : R.string.plus_join_group_call);
+                            menuCall.setVisible(false);
+                        } else {
+                            menuOngoingCall.setVisible(false);
+                            menuCall.setVisible(groupCalls);
+                            menuCall.setTitle(R.string.plus_group_call);
+                            menuVideoCall.setVisible(
+                                    requireXmppActivity().isCameraFeatureAvailable());
+                        }
                     } else {
                         final var manager =
                                 c.getAccount().getXmppConnection().getManager(JingleManager.class);
@@ -766,6 +789,19 @@ public class ConversationFragment extends XmppFragment
                         if (activity instanceof XmppActivity) {
                             BlockContactDialog.show((XmppActivity) activity, conversation);
                         }
+                        return true;
+                    } else if (conversation.getMode() == Conversation.MODE_MULTI
+                            && (itemId == R.id.action_audio_call
+                                    || itemId == R.id.action_video_call
+                                    || itemId == R.id.action_ongoing_call)) {
+                        // Conversations+: group call screen (asks for mic/camera itself)
+                        startActivity(
+                                GroupCallActivity.intent(
+                                        requireActivity(),
+                                        conversation.getAccount(),
+                                        conversation.getAddress().asBareJid(),
+                                        itemId != R.id.action_ongoing_call,
+                                        itemId == R.id.action_video_call));
                         return true;
                     } else if (itemId == R.id.action_audio_call) {
                         checkPermissionAndTriggerAudioCall();

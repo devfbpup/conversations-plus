@@ -5,4 +5,31 @@
     <string name="plus_stop_screen_sharing">Stop sharing screen</string>
     <string name="plus_sharing_screen">Sharing your screen</string>
     <string name="plus_could_not_share_screen">Couldn\'t share the screen</string>
+
+    <!-- group calls (XEP-0272 Muji) -->
+    <string name="plus_group_calls">Group calls</string>
+    <string name="plus_group_call">Group call</string>
+    <string name="plus_join_group_call">Join group call</string>
+    <string name="plus_ongoing_group_call">Ongoing group call</string>
+    <string name="plus_group_call_started">%s started a group call</string>
+    <string name="plus_join">Join</string>
+    <string name="plus_join_voice">Join (voice)</string>
+    <string name="plus_join_video">Join (video)</string>
+    <string name="plus_group_call_running">A group call is going on here.</string>
+    <string name="plus_group_call_start_hint">Start a group call: everyone in this group can join.</string>
+    <string name="plus_group_call_waiting">Waiting for others to join…</string>
+    <plurals name="plus_group_call_connected">
+        <item quantity="one">%1$d of %2$d person connected</item>
+        <item quantity="other">%1$d of %2$d people connected</item>
+    </plurals>
+    <string name="plus_group_call_not_possible">Group calls need a private group (members can see each other\'s addresses) that you have joined.</string>
+    <string name="plus_you">You</string>
+    <string name="plus_tile_connecting">%s (connecting…)</string>
+    <string name="plus_mute">Mute</string>
+    <string name="plus_unmute">Unmute</string>
+    <string name="plus_camera_off">Camera off</string>
+    <string name="plus_camera_on">Camera on</string>
+    <string name="plus_speaker">Speaker</string>
+    <string name="plus_earpiece">Earpiece</string>
+    <string name="plus_leave">Leave</string>
 </resources>

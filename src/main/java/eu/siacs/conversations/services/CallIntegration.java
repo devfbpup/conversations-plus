@@ -74,8 +74,24 @@ public class CallIntegration extends Connection {
 
     private Callback callback = null;
 
+    // Conversations+ (group calls): a leg of a group call is never registered with Android's
+    // telecom stack; all legs route audio through the conference's one AppRTCAudioManager.
+    private final boolean groupCallLeg;
+
+    public CallIntegration(final Context context, final AppRTCAudioManager sharedAudioManager) {
+        this.context = context.getApplicationContext();
+        this.groupCallLeg = true;
+        this.appRTCAudioManager = sharedAudioManager;
+        setConnectionCapabilities(CAPABILITY_MUTE);
+    }
+
+    public boolean isGroupCallLeg() {
+        return this.groupCallLeg;
+    }
+
     public CallIntegration(final Context context) {
         this.context = context.getApplicationContext();
+        this.groupCallLeg = false;
         if (selfManaged()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 setConnectionProperties(Connection.PROPERTY_SELF_MANAGED);
@@ -176,7 +192,7 @@ public class CallIntegration extends Connection {
     }
 
     public Set<AudioDevice> getAudioDevices() {
-        if (notSelfManaged(context)) {
+        if (notSelfManaged()) {
             return getAudioDevicesFallback();
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return getAudioDevicesUpsideDownCake();
@@ -188,7 +204,7 @@ public class CallIntegration extends Connection {
     }
 
     public AudioDevice getSelectedAudioDevice() {
-        if (notSelfManaged(context)) {
+        if (notSelfManaged()) {
             return getAudioDeviceFallback();
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return getAudioDeviceUpsideDownCake();
@@ -200,7 +216,7 @@ public class CallIntegration extends Connection {
     }
 
     public void setAudioDevice(final AudioDevice audioDevice) {
-        if (notSelfManaged(context)) {
+        if (notSelfManaged()) {
             setAudioDeviceFallback(audioDevice);
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             setAudioDeviceUpsideDownCake(audioDevice);
@@ -364,7 +380,10 @@ public class CallIntegration extends Connection {
     @Override
     public void onStateChanged(final int state) {
         Log.d(Config.LOGTAG, "onStateChanged(" + state + ")");
-        if (notSelfManaged(context)) {
+        if (this.groupCallLeg) {
+            return; // no ringback, tones or audio teardown per leg: the conference owns the audio
+        }
+        if (notSelfManaged()) {
             if (state == STATE_DIALING) {
                 requireAppRtcAudioManager().startRingBack();
             } else {
@@ -444,6 +463,9 @@ public class CallIntegration extends Connection {
     }
 
     private void startTone(final int volume, final int toneType, final int durationMs) {
+        if (this.groupCallLeg) {
+            return;
+        }
         final ToneGenerator toneGenerator;
         try {
             toneGenerator = new ToneGenerator(AudioManager.STREAM_VOICE_CALL, volume);
@@ -499,8 +521,12 @@ public class CallIntegration extends Connection {
         }
     }
 
+    private boolean notSelfManaged() {
+        return !selfManaged();
+    }
+
     private boolean selfManaged() {
-        return selfManaged(context);
+        return !this.groupCallLeg && selfManaged(context);
     }
 
     public static boolean selfManagedAvailable(final Context context) {
@@ -563,6 +589,9 @@ public class CallIntegration extends Connection {
             return;
         }
         final var audioManager = requireAppRtcAudioManager();
+        if (this.groupCallLeg) {
+            return; // started once by the conference
+        }
         audioManager.executeOnMain(
                 () -> {
                     audioManager.start();

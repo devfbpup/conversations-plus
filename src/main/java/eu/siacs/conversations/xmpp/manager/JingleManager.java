@@ -107,6 +107,16 @@ public class JingleManager extends AbstractManager {
             final Content content = jingle.getJingleContent();
             final String descriptionNamespace =
                     content == null ? null : content.getDescriptionNamespace();
+            // Conversations+: a leg of a group call (XEP-0272 Muji)
+            final String mujiRoom = im.conversations.android.xmpp.model.muji.Muji.roomOf(jingle);
+            if (mujiRoom != null && Namespace.JINGLE_APPS_RTP.equals(descriptionNamespace)) {
+                if (!isUsingClearNet()) {
+                    terminateMuji(packet, id, "policy");
+                    return;
+                }
+                getManager(MujiManager.class).onSessionInitiate(packet, id, mujiRoom);
+                return;
+            }
             final AbstractJingleConnection connection;
             if (Namespace.JINGLE_APPS_FILE_TRANSFER.equals(descriptionNamespace)) {
                 connection = new JingleFileTransferConnection(this.service, id, from);
@@ -461,6 +471,9 @@ public class JingleManager extends AbstractManager {
     }
 
     private boolean isBusy() {
+        if (getManager(MujiManager.class).isInAnyCall()) {
+            return true;
+        }
         for (final AbstractJingleConnection connection : this.connections.values()) {
             if (connection instanceof JingleRtpConnection rtpConnection) {
                 if (connection.isTerminated() && rtpConnection.getCallIntegration().isDestroyed()) {
@@ -625,6 +638,9 @@ public class JingleManager extends AbstractManager {
     public Optional<OngoingRtpSession> getOngoingRtpConnection(final Contact contact) {
         for (final var entry : this.connections.entrySet()) {
             if (entry.getValue() instanceof JingleRtpConnection jingleRtpConnection) {
+                if (jingleRtpConnection.getMujiRoom() != null) {
+                    continue; // a group-call leg belongs to the group chat
+                }
                 final AbstractJingleConnection.Id id = entry.getKey();
                 if (id.account == contact.getAccount()
                         && id.with.asBareJid().equals(contact.getAddress().asBareJid())) {
@@ -725,6 +741,48 @@ public class JingleManager extends AbstractManager {
                 System.currentTimeMillis());
         getManager(JingleMessageManager.class)
                 .retract(rtpSessionProposal.with, rtpSessionProposal.sessionId);
+    }
+
+    // Conversations+: group calls (XEP-0272 Muji) --------------------------------------------
+
+    /** Call a group-call participant directly (their real full JID), no JMI ringing. */
+    public JingleRtpConnection initializeMujiSession(
+            final Jid with,
+            final String room,
+            final Set<Media> media,
+            final eu.siacs.conversations.services.AppRTCAudioManager sharedAudio) {
+        final var account = getAccount();
+        final AbstractJingleConnection.Id id = AbstractJingleConnection.Id.of(account, with);
+        final JingleRtpConnection leg =
+                JingleRtpConnection.groupCallLeg(
+                        this.service, id, account.getJid(), room, sharedAudio);
+        leg.setProposedMedia(media);
+        this.connections.put(id, leg);
+        leg.sendSessionInitiate();
+        return leg;
+    }
+
+    /** The answering side of a group-call leg; the caller delivers the session-initiate. */
+    public JingleRtpConnection createMujiResponder(
+            final AbstractJingleConnection.Id id,
+            final String room,
+            final eu.siacs.conversations.services.AppRTCAudioManager sharedAudio) {
+        final JingleRtpConnection leg =
+                JingleRtpConnection.groupCallLeg(this.service, id, id.with, room, sharedAudio);
+        this.connections.put(id, leg);
+        return leg;
+    }
+
+    /** Refuse a group-call leg, saying why (so a failing call can be read from the peer's log). */
+    public void terminateMuji(
+            final Iq request, final AbstractJingleConnection.Id id, final String text) {
+        this.connection.sendResultFor(request);
+        final var iq = new Iq(Iq.Type.SET);
+        iq.setTo(id.with);
+        final var sessionTermination =
+                iq.addExtension(new Jingle(Jingle.Action.SESSION_TERMINATE, id.sessionId));
+        sessionTermination.setReason(new Reason.Decline(), text);
+        this.connection.sendIqPacket(iq);
     }
 
     public JingleRtpConnection initializeRtpSession(final Jid with, final Set<Media> media) {
@@ -1028,7 +1086,13 @@ public class JingleManager extends AbstractManager {
         for (final AbstractJingleConnection connection : this.connections.values()) {
             if (connection.getId().sessionId.equals(sessionId)) {
                 if (connection instanceof JingleRtpConnection jingleRtpConnection) {
-                    jingleRtpConnection.endCall();
+                    final String room = jingleRtpConnection.getMujiRoom();
+                    if (room != null) {
+                        // hanging up from the notification leaves the whole group call
+                        getManager(MujiManager.class).leave(Jid.of(room));
+                    } else {
+                        jingleRtpConnection.endCall();
+                    }
                 }
             }
         }

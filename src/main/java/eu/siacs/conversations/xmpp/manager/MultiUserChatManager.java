@@ -247,6 +247,7 @@ public class MultiUserChatManager extends AbstractManager {
                 account.getJid().asBareJid().toString()
                         + ": joining conversation "
                         + joinJid.toString());
+        getManager(MujiManager.class).onRoomJoining(joinJid.asBareJid()); // Conversations+
 
         final var x = new MultiUserChat();
 
@@ -383,6 +384,7 @@ public class MultiUserChatManager extends AbstractManager {
         } else {
             throw new AssertionError("presences of this type should not be routed here");
         }
+        getManager(MujiManager.class).onPresence(presence); // Conversations+: group calls
         final var tileUserAfter =
                 isGeneratedAvatar ? mucOptions.getUsersPreview(5) : Collections.emptyList();
         if (isGeneratedAvatar && !tileUserAfter.equals(tileUserBefore)) {
@@ -953,7 +955,12 @@ public class MultiUserChatManager extends AbstractManager {
     }
 
     private void available(
-            final Jid address, final boolean nonAnonymous, final Extension... extensions) {
+            final Jid address, final boolean nonAnonymous, Extension... extensions) {
+        // Conversations+: a room presence without <muji> means "I left the group call"
+        final var muji = getManager(MujiManager.class).currentPayload(address.asBareJid());
+        if (muji != null) {
+            extensions = combine(extensions, muji);
+        }
         final var presenceManager = getManager(PresenceManager.class);
         final var account = getAccount();
         final String pgpSignature = account.getPgpSignature();
@@ -967,6 +974,7 @@ public class MultiUserChatManager extends AbstractManager {
     }
 
     public void unavailable(final Conversation conversation) {
+        getManager(MujiManager.class).onRoomLeft(conversation.getAddress().asBareJid());
         final var mucOptions = getOrCreateState(conversation);
         getManager(PresenceManager.class).unavailable(mucOptions.getSelf().getFullJid());
     }
