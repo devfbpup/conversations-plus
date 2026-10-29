@@ -331,6 +331,7 @@ public class RtpSessionActivity extends XmppActivity
                                         .show();
                             }
                             invalidateOptionsMenu();
+                            refreshScreenShareButton();
                         },
                         300);
     }
@@ -347,6 +348,15 @@ public class RtpSessionActivity extends XmppActivity
             xmppConnectionService.setScreenSharing(false);
         }
         invalidateOptionsMenu();
+        refreshScreenShareButton();
+    }
+
+    private void refreshScreenShareButton() {
+        try {
+            updateInCallButtonConfiguration();
+        } catch (final IllegalStateException e) {
+            Log.d(Config.LOGTAG, "call already gone", e);
+        }
     }
 
     private void launchHelpInBrowser() {
@@ -1136,6 +1146,7 @@ public class RtpSessionActivity extends XmppActivity
                         callIntegration.getSelectedAudioDevice(),
                         callIntegration.getAudioDevices().size());
                 this.binding.inCallActionFarRight.setVisibility(View.GONE);
+                this.binding.inCallActionFarLeft.setVisibility(View.GONE);
             }
             if (media.contains(Media.AUDIO)) {
                 updateInCallButtonConfigurationMicrophone(
@@ -1157,10 +1168,12 @@ public class RtpSessionActivity extends XmppActivity
                     callIntegration.getSelectedAudioDevice(),
                     callIntegration.getAudioDevices().size());
             this.binding.inCallActionFarRight.setVisibility(View.GONE);
+            this.binding.inCallActionFarLeft.setVisibility(View.GONE);
         } else {
             this.binding.inCallActionLeft.setVisibility(View.GONE);
             this.binding.inCallActionRight.setVisibility(View.GONE);
             this.binding.inCallActionFarRight.setVisibility(View.GONE);
+            this.binding.inCallActionFarLeft.setVisibility(View.GONE);
         }
     }
 
@@ -1226,6 +1239,7 @@ public class RtpSessionActivity extends XmppActivity
         } else {
             this.binding.inCallActionFarRight.setVisibility(View.GONE);
         }
+        updateScreenShareButton(videoEnabled);
         if (videoEnabled) {
             this.binding.inCallActionRight.setImageResource(R.drawable.ic_videocam_24dp);
             this.binding.inCallActionRight.setOnClickListener(this::disableVideo);
@@ -1237,6 +1251,28 @@ public class RtpSessionActivity extends XmppActivity
             this.binding.inCallActionRight.setContentDescription(
                     getString(R.string.video_is_disabled_tap_to_enable));
         }
+    }
+
+    // Conversations+: the action bar is hidden during video calls, so screen sharing gets a button
+    @SuppressLint("RestrictedApi")
+    private void updateScreenShareButton(final boolean videoEnabled) {
+        final JingleRtpConnection connection =
+                this.rtpConnectionReference != null ? this.rtpConnectionReference.get() : null;
+        final boolean sharing = connection != null && connection.isScreenSharing();
+        if (!videoEnabled && !sharing) {
+            this.binding.inCallActionFarLeft.setVisibility(View.GONE);
+            return;
+        }
+        this.binding.inCallActionFarLeft.setImageResource(
+                sharing ? R.drawable.ic_stop_screen_share_24dp : R.drawable.ic_screen_share_24dp);
+        this.binding.inCallActionFarLeft.setContentDescription(
+                getString(sharing ? R.string.plus_stop_screen_sharing : R.string.plus_share_screen));
+        this.binding.inCallActionFarLeft.setOnClickListener(
+                v -> {
+                    resetVisibilityToggleExecutor();
+                    toggleScreenShare();
+                });
+        setVisibleAndShow(this.binding.inCallActionFarLeft);
     }
 
     private void switchCamera(final View view) {
@@ -1342,6 +1378,7 @@ public class RtpSessionActivity extends XmppActivity
         binding.endCall.hide();
         binding.inCallActionRight.hide();
         binding.inCallActionFarRight.hide();
+        binding.inCallActionFarLeft.hide();
     }
 
     private void showInCallButtons() {
@@ -1407,7 +1444,10 @@ public class RtpSessionActivity extends XmppActivity
             ensureSurfaceViewRendererIsSetup(binding.localVideo);
             // paint local view over remote view
             binding.localVideo.setZOrderMediaOverlay(true);
-            binding.localVideo.setMirror(requireRtpConnection().isFrontCamera());
+            final JingleRtpConnection connection = requireRtpConnection();
+            // a shared screen is never mirrored
+            binding.localVideo.setMirror(
+                    connection.isFrontCamera() && !connection.isScreenSharing());
             addSink(localVideoTrack.get(), binding.localVideo);
         } else {
             binding.localVideo.setVisibility(View.GONE);

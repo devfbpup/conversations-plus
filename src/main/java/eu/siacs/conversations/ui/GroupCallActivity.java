@@ -33,6 +33,8 @@ import eu.siacs.conversations.xmpp.manager.MujiManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
 
@@ -42,6 +44,7 @@ import org.webrtc.VideoTrack;
  */
 public class GroupCallActivity extends XmppActivity {
 
+    private static final Executor SINK_REMOVER = Executors.newSingleThreadExecutor();
     private static final String EXTRA_ACCOUNT = "account";
     private static final String EXTRA_ROOM = "room";
     private static final String EXTRA_JOIN = "join";
@@ -227,11 +230,11 @@ public class GroupCallActivity extends XmppActivity {
     }
 
     private void leave() {
+        releaseTiles(); // detach the views while the legs are still alive
         final MujiManager muji = muji();
         if (muji != null) {
             muji.leave(room);
         }
-        releaseTiles();
         finish();
     }
 
@@ -402,12 +405,20 @@ public class GroupCallActivity extends XmppActivity {
     private void releaseTiles() {
         for (final Tile tile : tiles) {
             if (tile.renderer != null) {
-                try {
-                    tile.track.removeSink(tile.renderer);
-                } catch (final RuntimeException ignored) {
-                    // the track was already disposed with its leg
-                }
+                // a released renderer drops late frames. removeSink blocks on WebRTC's worker
+                // thread, which hangs while a leg's peer connection is closing, so keep it off
+                // the UI thread
                 tile.renderer.release();
+                final VideoTrack track = tile.track;
+                final SurfaceViewRenderer renderer = tile.renderer;
+                SINK_REMOVER.execute(
+                        () -> {
+                            try {
+                                track.removeSink(renderer);
+                            } catch (final RuntimeException ignored) {
+                                // the track was already disposed with its leg
+                            }
+                        });
             }
         }
         tiles.clear();

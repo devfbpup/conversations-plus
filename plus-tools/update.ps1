@@ -75,7 +75,7 @@ if (-not $NoPublish) {
     git push --quiet github plus
     git push --quiet github HEAD:refs/heads/main 2>$null
     gh release create $tag --target plus $arm64.FullName $universal.FullName --repo devfbpup/conversations-plus `
-        --title "Conversations+ $fullVersion" --notes "Conversations $base + Conversations+ features (screen sharing in calls). Install the arm64-v8a APK on most phones; universal works everywhere. Built $(Get-Date -Format u)."
+        --title "Conversations+ $fullVersion" --notes "Conversations $base + Conversations+ features (screen sharing in calls, group calls in private group chats). Install the arm64-v8a APK on most phones; universal works everywhere. Built $(Get-Date -Format u)."
     if ($LASTEXITCODE -ne 0) { Say "  GitHub release failed (is gh logged in?)" }
 }
 Write-Host ""

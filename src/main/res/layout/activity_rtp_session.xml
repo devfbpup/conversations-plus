@@ -278,6 +278,17 @@
                 android:layout_margin="@dimen/in_call_fab_margin"
                 android:layout_toEndOf="@+id/in_call_action_right"
                 android:visibility="gone" />
+
+            <!-- Conversations+: share screen (video calls only) -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/in_call_action_far_left"
+                style="?attr/floatingActionButtonSmallSurfaceStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_margin="@dimen/in_call_fab_margin"
+                android:layout_toStartOf="@+id/in_call_action_left"
+                android:visibility="gone" />
         </RelativeLayout>
 
         <TextView
